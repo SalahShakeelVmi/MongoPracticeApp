@@ -82,6 +82,20 @@ app.delete('/users/:id', async (req, res) => {
     }
 });
 
+app.post('/users/bulk-delete', async (req, res) => {
+    try {
+        const userIds = req.body.data; // Extract 'data' property from the request body
+        const result = await usersCollection.deleteMany({ _id: { $in: userIds.map((id) => new ObjectId(id)) } });
+        console.log('Deleted users:', result);
+        return res.send(result);
+    } catch (error) {
+        console.error('Error deleting users:', error);
+        return res.status(500).send('Internal Server Error');
+    }
+});
+
+  
+
 app.get('/users/check-email/:email', async (req, res) => {
     try {
       const userEmail = req.params.email;
@@ -100,3 +114,16 @@ app.get('/users/check-email/:email', async (req, res) => {
     }
   });
   
+
+
+  // role based urls
+  const roleBasedUsersCollection = mongoose.connection.client.db().collection('roleBasedUsers');
+  app.get('/users/rolebased', async (req, res) => {
+    try {   
+        const usersData = await roleBasedUsersCollection.find({}).toArray();
+        return res.json(usersData[0]["users"]);
+    } catch (error) {
+        console.error('Error getting users data:', error);
+        return res.status(500).send('Internal Server Error');
+    }
+});
