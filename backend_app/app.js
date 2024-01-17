@@ -25,16 +25,66 @@ db.once('open', () => {
 
 const usersCollection = mongoose.connection.client.db().collection('users');
 
-app.get('/users', async (req, res) => {
-    try {
+// app.get('/users', async (req, res) => {
+//     try {
       
-        const usersData = await usersCollection.find({}).toArray();
-        return res.json(usersData);
-    } catch (error) {
-        console.error('Error getting users data:', error);
-        return res.status(500).send('Internal Server Error');
+//         const usersData = await usersCollection.find({}).toArray();
+//         return res.json(usersData);
+//     } catch (error) {
+//         console.error('Error getting users data:', error);
+//         return res.status(500).send('Internal Server Error');
+//     }
+// });
+
+app.get('/users', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = 10;
+    const searchQuery = req.query.search || '';
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+
+    console.log(startDate, endDate);
+
+    // Construct a dynamic query based on the search query and date range
+    const query = {};
+    if (searchQuery) {
+      query.name = { $regex: new RegExp(searchQuery, 'i') };
     }
+    if (startDate && endDate) {
+     
+
+      // Add date range to the query
+      query.date = { $gte: startDate, $lte: endDate };
+
+    }
+
+    // Fetch total users count with the search query and date range
+    const totalUsers = await usersCollection.countDocuments(query);
+    const totalPages = Math.ceil(totalUsers / pageSize);
+
+    
+
+    // Fetch users data with pagination, search query, and date range
+    const usersData = await usersCollection
+      .find(query)
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .toArray();
+      console.log(usersData);
+
+    return res.json({
+      data: usersData,
+      totalPages,
+      currentPage: page,
+    });
+  } catch (error) {
+    console.error('Error getting users data:', error);
+    return res.status(500).send('Internal Server Error');
+  }
 });
+
+
 
 app.post('/users', async (req, res) => {
     try{
